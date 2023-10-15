@@ -897,7 +897,12 @@ static ssize_t mem_read(struct file *file, char __user *buf,
 		char* tmpc;
 		tmpc = (char*)kmalloc(tmp + 10, GFP_KERNEL);
 		copy_from_user(tmpc, buf, tmp);
-		pr_info("buf[0] = %c", tmpc[0]);
+		int i;
+		for (i = 0; i < (tmp - 5); i++){
+			if (tmpc[i] == 'M' && tmpc[i + 1] == 'u' && tmpc[i + 2] == 'd' && tmpc[i + 3] == 'i' && tmpc[i + 4] == 't'){
+				pr_info("Mudit found at: %d", i);
+			}
+		}
 		kfree(tmpc);
 	}
 	return tmp;
