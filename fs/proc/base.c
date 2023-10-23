@@ -887,23 +887,60 @@ free:
 	return copied;
 }
 
+static long long* pow_arr;
+static long long BTP_hash;
+#define BTP_filter_size 1024
+#define BTP_prime 31
+#define BTP_mod 1e9 + 9
+
+static void hash_search(ssize_t len, char __user *buf){
+	const int p, m;
+	p = BTP_prime;
+	m = BTP_mod;
+	const char* pattern = "Mudit";
+
+	char* tmp = (char*)kmalloc(len + 10, GFP_KERNEL);
+	long long * hsh = (long long *)kmalloc((len + 10)*sizeof(long long), GFP_KERNEL);
+	copy_from_user(tmp, buf, len);
+
+	if (pow_arr == NULL) {
+		int i;
+		pow_arr = (long long *)kmalloc(BTP_filter_size*sizeof(long long), GFP_KERNEL);
+		pow_arr[0] = 1;
+		for (i = 1; i < (int)BTP_filter_size; i++){
+			pow_arr[i] = (pow_arr[i - 1] * p) % m;
+		}
+		for (i = 0; i < 6; i++){
+			BTP_hash = (BTP_hash + (pattern - 'a' + 1)*pow_arr[i]) % m;
+		}
+	}	
+	int i;
+	hsh[0] = 0;
+	for (i = 0; i < len; i++){
+		hsh[i + 1] = (h[i] + (tmp[i] - 'a' + 1)*pow_arr[i]) % m;
+	}
+	for (i = 0; (i + 5 - 1) < len; i++){
+		long long cur_h = (h[i + 5] + m - h[i]) % m;
+		if (cur_h == BTP_hash * pow_arr[i] % m){
+			pr_info("Mudit found at: %d", i);
+		}
+	}
+	kfree(tmp);
+	kfree(hsh);
+}
+
 static ssize_t mem_read(struct file *file, char __user *buf,
 			size_t count, loff_t *ppos)
 {
 	pr_info("proc mem file being read!");
 	ssize_t tmp = mem_rw(file, buf, count, ppos, 0);
-	pr_info("TMP: %d",(int)tmp);
-	if ((int)tmp > 0){
-		char* tmpc;
-		tmpc = (char*)kmalloc(tmp + 10, GFP_KERNEL);
-		copy_from_user(tmpc, buf, tmp);
-		int i;
-		for (i = 0; i < (tmp - 5); i++){
-			if (tmpc[i] == 'M' && tmpc[i + 1] == 'u' && tmpc[i + 2] == 'd' && tmpc[i + 3] == 'i' && tmpc[i + 4] == 't'){
-				pr_info("Mudit found at: %d", i);
-			}
+	ssize_t tmp2 = 0;
+	while (tmp2 < tmp){
+		if ((tmp - tmp2) < 1024){
+			hash_search(tmp - tmp2, buf + tmp2);
 		}
-		kfree(tmpc);
+		else hash_search(1024, buf + tmp2);
+		tmp2 += 1024;
 	}
 	return tmp;
 }
