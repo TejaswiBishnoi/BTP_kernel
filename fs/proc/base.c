@@ -893,6 +893,13 @@ static long long BTP_hash;
 #define BTP_prime 31
 #define BTP_mod 1e9 + 9
 
+static void notify_find_printk(int pos){
+	pr_info("Mudit found at: %d", pos);
+}
+
+static void (*notify_find)(int) = &notify_find_printk;
+EXPORT_SYMBOL(notify_find); 
+
 static void hash_search(ssize_t len, char __user *buf){
 	const int p, m;
 	p = BTP_prime;
@@ -922,7 +929,7 @@ static void hash_search(ssize_t len, char __user *buf){
 	for (i = 0; (i + 5 - 1) < len; i++){
 		long long cur_h = (h[i + 5] + m - h[i]) % m;
 		if (cur_h == BTP_hash * pow_arr[i] % m){
-			pr_info("Mudit found at: %d", i);
+			(*notify_find)(i);
 		}
 	}
 	kfree(tmp);
