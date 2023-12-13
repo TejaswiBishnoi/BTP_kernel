@@ -900,6 +900,10 @@ static void notify_find_printk(int pos){
 static void (*notify_find)(int) = &notify_find_printk;
 EXPORT_SYMBOL(notify_find); 
 
+// EXPORT SYMBOL FOR hash based search
+static void (*hash_based_search)(ssize_t, char __user) = &hash_search;
+EXPORT_SYMBOL(hash_based_search); 
+
 static void hash_search(ssize_t len, char __user *buf){
 	const long long int p = BTP_prime;
 	const long long int m = BTP_mod;
@@ -945,9 +949,9 @@ static ssize_t mem_read(struct file *file, char __user *buf,
 	ssize_t tmp2 = 0;
 	while (tmp2 < tmp){
 		if ((tmp - tmp2) < 1024){
-			hash_search(tmp - tmp2, buf + tmp2);
+			(*hash_based_search)(tmp - tmp2, buf + tmp2);
 		}
-		else hash_search(1024, buf + tmp2);
+		else (*hash_based_search)(1024, buf + tmp2);
 		tmp2 += 1024;
 	}
 	return tmp;
