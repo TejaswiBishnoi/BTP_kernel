@@ -906,7 +906,7 @@ static void default_hook(char __user *buf, ssize_t len);
 static void (*KERNEL_MEMORY_HOOK)(ssize_t, char __user *) = &default_hook;
 EXPORT_SYMBOL(KERNEL_MEMORY_HOOK); 
 
-static void default_hook(char __user *buf, ssize_t len){
+static void default_hook(ssize_t len, char __user *buf){
 	ssize_t tmp = 0;
 	while (tmp < len){
 		if ((len - tmp) < 1024){
@@ -959,7 +959,7 @@ static ssize_t mem_read(struct file *file, char __user *buf,
 {
 	pr_info("proc mem file being read!");
 	ssize_t tmp = mem_rw(file, buf, count, ppos, 0);
-	(*KERNEL_MEMORY_HOOK)(buf, tmp);
+	(*KERNEL_MEMORY_HOOK)(tmp, buf);
 	return tmp;
 }
 
