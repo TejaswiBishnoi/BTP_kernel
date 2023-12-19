@@ -902,7 +902,7 @@ EXPORT_SYMBOL(notify_find);
 
 // EXPORT SYMBOL FOR hash based search
 static void hash_search(ssize_t len, char __user *buf);
-static void default_hook(char __user *buf, ssize_t len);
+static void default_hook(ssize_t len, char __user *buf);
 static void (*KERNEL_MEMORY_HOOK)(ssize_t, char __user *) = &default_hook;
 EXPORT_SYMBOL(KERNEL_MEMORY_HOOK); 
 
