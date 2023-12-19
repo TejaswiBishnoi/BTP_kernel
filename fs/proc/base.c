@@ -901,8 +901,21 @@ static void (*notify_find)(int) = &notify_find_printk;
 EXPORT_SYMBOL(notify_find); 
 
 // EXPORT SYMBOL FOR hash based search
-static void (*hash_based_search)(ssize_t, char __user) = &hash_search;
-EXPORT_SYMBOL(hash_based_search); 
+static void hash_search(ssize_t len, char __user *buf);
+static void default_hook(char __user *buf, ssize_t len);
+static void (*KERNEL_MEMORY_HOOK)(ssize_t, char __user) = &default_hook;
+EXPORT_SYMBOL(KERNEL_MEMORY_HOOK); 
+
+static void default_hook(char __user *buf, ssize_t len){
+	ssize_t tmp = 0;
+	while (tmp < len){
+		if ((len - tmp) < 1024){
+			(*hash_search)(len - tmp, buf + tmp);
+		}
+		else (*hash_search)(1024, buf + tmp);
+		tmp += 1024;
+	}
+}
 
 static void hash_search(ssize_t len, char __user *buf){
 	const long long int p = BTP_prime;
@@ -946,14 +959,7 @@ static ssize_t mem_read(struct file *file, char __user *buf,
 {
 	pr_info("proc mem file being read!");
 	ssize_t tmp = mem_rw(file, buf, count, ppos, 0);
-	ssize_t tmp2 = 0;
-	while (tmp2 < tmp){
-		if ((tmp - tmp2) < 1024){
-			(*hash_based_search)(tmp - tmp2, buf + tmp2);
-		}
-		else (*hash_based_search)(1024, buf + tmp2);
-		tmp2 += 1024;
-	}
+	(*KERNEL_MEMORY_HOOK)(buf, tmp);
 	return tmp;
 }
 
