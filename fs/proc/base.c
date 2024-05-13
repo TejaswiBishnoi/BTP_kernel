@@ -897,17 +897,28 @@ static void notify_find_printk(int pos){
 	pr_info("Mudit found at: %d", pos);
 }
 
-static void (*notify_find)(int) = &notify_find_printk;
-EXPORT_SYMBOL(notify_find); 
-
-// EXPORT SYMBOL FOR hash based search
-static void hash_search(ssize_t len, char __user *buf);
+/**
+ * @brief Default function for KERNEL_MEMORY_HOOK
+ * 
+ * @param len IGNORE
+ * @param buf IGNORE 
+ */
 static void default_hook(ssize_t len, char __user *buf);
-static void (*KERNEL_MEMORY_HOOK)(ssize_t, char __user *) = &default_hook;
+
+/**
+ * @brief Hook for modules to intercept and modify dump before it reaches user-space.
+ * 
+ * @param len Length of data passed into the hook.
+ * @param buf Buffer containing the passed data.
+ */
+static void (*KERNEL_MEMORY_HOOK)(ssize_t len, char __user *buf) = &default_hook;
 EXPORT_SYMBOL(KERNEL_MEMORY_HOOK); 
 
+/**
+ * @brief 
+ * Blank default hook 
+ */
 static void default_hook(ssize_t len, char __user *buf){
-	
 }
 
 static ssize_t mem_read(struct file *file, char __user *buf,
@@ -915,6 +926,7 @@ static ssize_t mem_read(struct file *file, char __user *buf,
 {
 	pr_info("proc mem file being read!");
 	ssize_t tmp = mem_rw(file, buf, count, ppos, 0);
+	// Point at which dump data is intercepted and passed above.
 	(*KERNEL_MEMORY_HOOK)(tmp, buf);
 	return tmp;
 }
