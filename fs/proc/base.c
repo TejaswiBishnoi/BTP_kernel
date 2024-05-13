@@ -897,61 +897,28 @@ static void notify_find_printk(int pos){
 	pr_info("Mudit found at: %d", pos);
 }
 
-static void (*notify_find)(int) = &notify_find_printk;
-EXPORT_SYMBOL(notify_find); 
-
-// EXPORT SYMBOL FOR hash based search
-static void hash_search(ssize_t len, char __user *buf);
+/**
+ * @brief Default function for KERNEL_MEMORY_HOOK
+ * 
+ * @param len IGNORE
+ * @param buf IGNORE 
+ */
 static void default_hook(ssize_t len, char __user *buf);
-static void (*KERNEL_MEMORY_HOOK)(ssize_t, char __user *) = &default_hook;
+
+/**
+ * @brief Hook for modules to intercept and modify dump before it reaches user-space.
+ * 
+ * @param len Length of data passed into the hook.
+ * @param buf Buffer containing the passed data.
+ */
+static void (*KERNEL_MEMORY_HOOK)(ssize_t len, char __user *buf) = &default_hook;
 EXPORT_SYMBOL(KERNEL_MEMORY_HOOK); 
 
+/**
+ * @brief 
+ * Blank default hook 
+ */
 static void default_hook(ssize_t len, char __user *buf){
-	ssize_t tmp = 0;
-	while (tmp < len){
-		if ((len - tmp) < 1024){
-			(*hash_search)(len - tmp, buf + tmp);
-		}
-		else (*hash_search)(1024, buf + tmp);
-		tmp += 1024;
-	}
-}
-
-static void hash_search(ssize_t len, char __user *buf){
-	const long long int p = BTP_prime;
-	const long long int m = BTP_mod;
-	const char* pattern = "Mudit";
-
-	char* tmp = (char*)kmalloc(len + 10, GFP_KERNEL);
-	long long * hsh = (long long *)kmalloc((len + 10)*sizeof(long long), GFP_KERNEL);
-	if (copy_from_user(tmp, buf, len) != 0){
-		pr_warn("Error while copying");
-	}
-
-	if (pow_arr == NULL) {
-		int i;
-		pow_arr = (long long *)kmalloc(BTP_filter_size*sizeof(long long), GFP_KERNEL);
-		pow_arr[0] = 1;
-		for (i = 1; i < (int)BTP_filter_size; i++){
-			pow_arr[i] = (pow_arr[i - 1] * p) % m;
-		}
-		for (i = 0; i < 5; i++){
-			BTP_hash = (BTP_hash + (long long)(pattern[i] + 1)*pow_arr[i]) % m;
-		}
-	}	
-	int i;
-	hsh[0] = 0;
-	for (i = 0; i < len; i++){
-		hsh[i + 1] = (hsh[i] + (tmp[i] + 1)*pow_arr[i]) % m;
-	}
-	for (i = 0; (i + 5 - 1) < len; i++){
-		long long cur_h = (hsh[i + 5] + m - hsh[i]) % m;
-		if (cur_h == BTP_hash * pow_arr[i] % m){
-			(*notify_find)(i);
-		}
-	}
-	kfree(tmp);
-	kfree(hsh);
 }
 
 static ssize_t mem_read(struct file *file, char __user *buf,
@@ -959,6 +926,7 @@ static ssize_t mem_read(struct file *file, char __user *buf,
 {
 	pr_info("proc mem file being read!");
 	ssize_t tmp = mem_rw(file, buf, count, ppos, 0);
+	// Point at which dump data is intercepted and passed above.
 	(*KERNEL_MEMORY_HOOK)(tmp, buf);
 	return tmp;
 }
